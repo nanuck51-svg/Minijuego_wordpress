@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CiberQuiz M-Learning: Arquitectura Web y Despliegues</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        orangeNeon: '#FF6B00',
+                        amberGlow: '#FF9900',
+                        darkBg: '#0B0F19',
+                        cardBg: '#131C2E',
+                        cardHover: '#1E293B'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
+</head>
+<body class="bg-darkBg text-slate-100 min-h-screen flex flex-col justify-between selection:bg-orangeNeon selection:text-white">
+
+    <!-- HEADER -->
+    <header class="bg-cardBg border-b border-slate-800 py-4 px-6 sticky top-0 z-50 shadow-lg">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <span class="text-3xl">🔥</span>
+                <div>
+                    <h1 class="font-extrabold text-lg text-orangeNeon tracking-wide">CiberQuiz M-Learning</h1>
+                    <p class="text-xs text-slate-400">Gamificación Educativa & Despliegues Web</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="showScreen('home-screen')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg font-semibold transition border border-slate-700">🏠 Inicio</button>
+                <button onclick="openTeacherModal()" class="text-xs bg-orangeNeon/20 hover:bg-orangeNeon/30 text-amberGlow px-3 py-1.5 rounded-lg font-semibold transition border border-orangeNeon/40">🔒 Panel Profe</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="max-w-3xl w-full mx-auto p-4 md:p-6 flex-grow flex items-center justify-center">
+
+        <!-- PANTALLA 1: INICIO Y REGISTRO -->
+        <div id="home-screen" class="w-full bg-cardBg border border-slate-800 rounded-2xl p-6 md:p-8 shadow-2xl animate-fade-in">
+            <div class="text-center mb-6">
+                <span class="bg-orangeNeon/10 text-orangeNeon text-xs font-bold px-3 py-1 rounded-full border border-orangeNeon/20 uppercase tracking-widest">Despliegues y Servidores</span>
+                <h2 class="text-2xl md:text-3xl font-extrabold mt-3 text-white">¡Desafía tus conocimientos web!</h2>
+                <p class="text-slate-400 text-sm mt-2">Pon a prueba lo que sabes sobre DNS, cPanel, bases de datos y dominios jugando desde tu móvil.</p>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Tu Nombre o Alias</label>
+                    <input type="text" id="student-name" placeholder="Ej. Laura_Dev o Alumno_01..." class="w-full bg-darkBg border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-orangeNeon transition font-medium">
+                </div>
+
+                <button onclick="startQuiz()" class="w-full bg-gradient-to-r from-orangeNeon to-amberGlow text-darkBg font-extrabold py-3.5 rounded-xl shadow-lg hover:opacity-95 transition transform active:scale-95 text-base">
+                    🚀 ¡Comenzar el Reto!
+                </button>
+            </div>
+        </div>
+
+        <!-- PANTALLA 2: JUEGO (PREGUNTAS) -->
+        <div id="quiz-screen" class="w-full hidden space-y-6">
+            <!-- Barra de estado superior -->
+            <div class="flex justify-between items-center bg-cardBg border border-slate-800 px-4 py-3 rounded-xl">
+                <span id="question-counter" class="text-xs font-bold text-orangeNeon uppercase tracking-wider">Pregunta 1 de 30</span>
+                <div class="flex items-center space-x-3">
+                    <span id="streak-badge" class="text-xs bg-amber-500/20 text-amber-400 px-2.5 py-1 rounded-lg font-bold border border-amber-500/30 hidden">🔥 Racha: <span id="streak-count">0</span></span>
+                    <span class="text-xs bg-slate-800 text-slate-300 px-3 py-1 rounded-lg font-bold">Puntos: <span id="current-score" class="text-orangeNeon">0</span></span>
+                </div>
+            </div>
+
+            <!-- Tarjeta de Pregunta -->
+            <div class="bg-cardBg border border-slate-800 rounded-2xl p-6 md:p-8 shadow-xl">
+                <h3 id="question-text" class="text-lg md:text-xl font-bold text-white mb-6 leading-snug">Texto de la pregunta...</h3>
+                <div id="options-container" class="space-y-3">
+                    <!-- Opciones inyectadas por JS -->
+                </div>
+            </div>
+
+            <!-- Explicación Didáctica (Oculta al inicio) -->
+            <div id="explanation-box" class="hidden bg-slate-900 border border-slate-700 rounded-2xl p-5 shadow-lg animate-fade-in">
+                <div class="flex items-center space-x-2 mb-2">
+                    <span id="explanation-icon" class="text-xl">💡</span>
+                    <h4 id="explanation-title" class="font-bold text-sm">Explicación Didáctica</h4>
+                </div>
+                <p id="explanation-text" class="text-xs md:text-sm text-slate-300 leading-relaxed mb-4"></p>
+                <button onclick="nextQuestion()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl transition border border-slate-700 text-xs uppercase tracking-wider">
+                    Siguiente Pregunta ➡️
+                </button>
+            </div>
+        </div>
+
+        <!-- PANTALLA 3: RESULTADOS Y LOGROS -->
+        <div id="results-screen" class="w-full hidden bg-cardBg border border-slate-800 rounded-2xl p-6 md:p-8 shadow-2xl text-center space-y-6">
+            <div class="inline-block p-4 bg-orangeNeon/10 rounded-full border border-orangeNeon/20 text-4xl mb-2">🏆</div>
+            <h2 class="text-2xl md:text-3xl font-extrabold text-white">¡Reto Completado!</h2>
+            <p id="final-score-text" class="text-slate-400 text-sm">Has demostrado un gran dominio de los despliegues web.</p>
+            
+            <div class="bg-darkBg border border-slate-800 rounded-xl p-4 max-w-xs mx-auto">
+                <p class="text-xs text-slate-400 uppercase tracking-widest font-bold">Puntuación Final</p>
+                <p id="final-score-number" class="text-4xl font-extrabold text-orangeNeon mt-1">0 / 30</p>
+            </div>
+
+            <!-- Insignias Conseguidas -->
+            <div>
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Insignias Desbloqueadas</h4>
+                <div id="badges-container" class="flex justify-center gap-3 flex-wrap">
+                    <!-- Insignias dinámicas -->
+                </div>
+            </div>
+
+            <button onclick="restartQuiz()" class="w-full bg-gradient-to-r from-orangeNeon to-amberGlow text-darkBg font-extrabold py-3.5 rounded-xl shadow-lg hover:opacity-95 transition text-base">
+                🔄 Volver a Jugar
+            </button>
+        </div>
+
+    </main>
+
+    <!-- MODAL PANEL DOCENTE -->
+    <div id="teacher-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-cardBg border border-slate-700 rounded-2xl max-w-xl w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-lg text-orangeNeon flex items-center gap-2">🔒 Panel de Control Docente</h3>
+                <button onclick="closeTeacherModal()" class="text-slate-400 hover:text-white font-bold text-lg">✕</button>
+            </div>
+            
+            <!-- Vista de contraseña -->
+            <div id="teacher-auth" class="space-y-4 py-4">
+                <p class="text-xs text-slate-400">Introduce la contraseña de acceso docente (Por defecto: <code class="text-orangeNeon font-mono">profe2026</code>)</p>
+                <input type="password" id="teacher-pass" placeholder="Contraseña..." class="w-full bg-darkBg border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-orangeNeon">
+                <button onclick="verifyTeacher()" class="w-full bg-orangeNeon text-darkBg font-extrabold py-3 rounded-xl hover:bg-amberGlow transition">Acceder al Panel</button>
+            </div>
+
+            <!-- Vista de estadísticas -->
+            <div id="teacher-stats" class="hidden space-y-4">
+                <div class="flex justify-between items-center bg-darkBg p-3 rounded-xl border border-slate-800">
+                    <span class="text-xs text-slate-400 font-bold">Total Alumnos Registrados:</span>
+                    <span id="stat-total-students" class="text-orangeNeon font-extrabold">0</span>
+                </div>
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mt-4">Historial de Partidas Guardadas</h4>
+                <div id="students-list" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    <!-- Registros de la BD local/remota -->
+                </div>
+                <button onclick="clearDatabase()" class="text-xs bg-red-500/20 text-red-400 hover:bg-red-500/30 px-3 py-2 rounded-lg font-bold border border-red-500/30 w-full transition">🗑️ Borrar Datos Registrados</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="bg-cardBg border-t border-slate-800 py-4 text-center text-xs text-slate-500">
+        CiberQuiz M-Learning &copy; 2026 — Gamificación Educativa Cloud
+    </footer>
+
+    <!-- SCRIPT DE FUNCIONAMIENTO -->
+    <script>
+        // BANCO DE 30 PREGUNTAS OFICIALES
+        const questions = [
+            {
+                q: "¿Qué función cumple el DNS en la arquitectura de la red?",
+                options: [
+                    "A) Almacena las bases de datos de la web.",
+                    "B) Traduce el dominio en una dirección IP numérica.",
+                    "C) Cifra los datos mediante certificados de seguridad.",
+                    "D) Gestiona el envío de ficheros vía FTP."
+                ],
+                correct: 1,
+                exp: "El DNS actúa como el GPS de la web, traduciendo nombres comprensibles (como miweb.com) a coordenadas IP."
+            },
+            {
+                q: "¿Cómo se denomina el directorio raíz público principal en cPanel donde deben alojarse los archivos web?",
+                options: [
+                    "A) /httpdocs/",
+                    "B) /public_html/",
+                    "C) /www/root/",
+                    "D) /index/"
+                ],
+                correct: 1,
+                exp: "En cPanel, public_html es la carpeta pública o escaparate donde todo lo depositado se publica instantáneamente en Internet."
+            },
+            {
+                q: "¿Cuál es la regla de oro obligatoria para nombrar al archivo de inicio de una web?",
+                options: [
+                    "A) inicio.html en mayúsculas",
+                    "B) index.html o index.php en minúsculas",
+                    "C) home.php sin restricciones",
+                    "D) principal.html con espacios"
+                ],
+                correct: 1,
+                exp: "El servidor distingue mayúsculas de minúsculas, por lo que el archivo principal debe llamarse estrictamente index.html o index.php en minúsculas."
+            },
+            {
+                q: "¿Qué puerto se utiliza por defecto para conexiones FTP estándar?",
+                options: [
+                    "A) Puerto 22",
+                    "B) Puerto 80",
+                    "C) Puerto 21",
+                    "D) Puerto 443"
+                ],
+                correct: 2,
+                exp: "El puerto 21 se emplea para conexiones FTP estándar, mientras que el puerto 22 se reserva para SFTP cifrado."
+            },
+            {
+                q: "¿Qué ventaja ofrece subir un archivo comprimido .zip en lugar de carpetas sueltas mediante cPanel?",
+                options: [
+                    "A) Evita que se usen bases de datos MySQL.",
+                    "B) Agiliza la subida y permite extraer y eliminar el zip para liberar espacio.",
+                    "C) Aumenta el límite de peso permitido a 10 GB.",
+                    "D) Desactiva automáticamente el protocolo SSL."
+                ],
+                correct: 1,
+                exp: "Con cPanel se puede subir un .zip pesado, extraerlo de forma nativa en el servidor y borrar el original para ahorrar espacio."
+            },
+            {
+                q: "¿Qué acción correctiva se debe aplicar si al entrar a una web se visualiza una lista de archivos y carpetas en lugar de la página?",
+                options: [
+                    "A) Cambiar el certificado SSL.",
+                    "B) Comprobar que el archivo principal se llame exactamente index.html.",
+                    "C) Borrar la base de datos MySQL.",
+                    "D) Vaciar la caché con Ctrl + F5."
+                ],
+                correct: 1,
+                exp: "Si el servidor no encuentra un archivo index.html o index.php válido por defecto, muestra el listado de directorios."
+            },
+            {
+                q: "¿Qué se debe hacer si tras actualizar una web en producción sigue apareciendo la versión antigua?",
+                options: [
+                    "A) Reiniciar el servidor VPS.",
+                    "B) Forzar la recarga del navegador presionando Ctrl + F5 (limpiar caché).",
+                    "C) Modificar el archivo wp-config.php.",
+                    "D) Cambiar el puerto FTP de 21 a 22."
+                ],
+                correct: 1,
+                exp: "La caché del navegador suele almacenar versiones pasadas; Ctrl + F5 fuerza la descarga de los nuevos ficheros."
+            },
+            {
+                q: "En la analogía del restaurante del modelo cliente-servidor, ¿a qué equivale el navegador web (Cliente)?",
+                options: [
+                    "A) La cocina y el chef preparando los platos.",
+                    "B) El comensal que lee el menú (URL) y hace un pedido.",
+                    "C) El camarero transportando la comanda.",
+                    "D) Los ingredientes de la despensa."
+                ],
+                correct: 1,
+                exp: "El navegador actúa como el comensal que solicita los recursos a través de una petición HTTP."
+            },
+            {
+                q: "¿Qué representa el protocolo HTTP dentro de la analogía del restaurante?",
+                options: [
+                    "A) El edificio físico del hosting.",
+                    "B) El camarero que transporta la comanda de forma estructurada.",
+                    "C) La base de datos SQL.",
+                    "D) El dominio o dirección postal."
+                ],
+                correct: 1,
+                exp: "HTTP actúa como el canal de comunicación o camarero que lleva la petición del cliente al servidor y devuelve la respuesta."
+            },
+            {
+                q: "¿Qué diferencia fundamental existe entre abrir un HTML haciendo doble clic frente a usar Localhost?",
+                options: [
+                    "A) El doble clic usa protocolo de red HTTP y Localhost no.",
+                    "B) El doble clic abre un archivo local (file://) sin servidor ni procesamiento de PHP.",
+                    "C) Localhost no permite ver imágenes ni hojas de estilo CSS.",
+                    "D) No hay ninguna diferencia técnica operativa."
+                ],
+                correct: 1,
+                exp: "El doble clic usa el protocolo file:// actuando como un visor cerrado, mientras que localhost activa un servidor web real simulando Internet."
+            },
+            {
+                q: "¿Cuál es la dirección IP de bucle local (Loopback) utilizada para entornos de desarrollo en localhost?",
+                options: [
+                    "A) 192.168.1.1",
+                    "B) 10.0.0.255",
+                    "C) 127.0.0.1",
+                    "D) 8.8.8.8"
+                ],
+                correct: 2,
+                exp: "La IP 127.0.0.1 (loopback) redirige la petición a través de la interfaz de red virtual del propio ordenador hacia el servidor local."
+            },
+            {
+                q: "¿Por qué un entorno de servidor local (como XAMPP o Live Server) es indispensable para trabajar con WordPress o PHP?",
+                options: [
+                    "A) Porque permite comprar dominios .es gratis.",
+                    "B) Porque los navegadores puros no pueden interpretar código de servidor ni conectar con bases de datos.",
+                    "C) Porque el doble clic acelera la velocidad del procesador.",
+                    "D) Porque elimina la necesidad de usar contraseñas FTP."
+                ],
+                correct: 1,
+                exp: "Los lenguajes dinámicos como PHP requieren un intérprete de servidor activo (como Apache) para procesar la lógica antes de enviarla al navegador."
+            },
+            {
+                q: "¿Qué tipo de alojamiento web ofrece un entorno virtualizado con recursos dedicados y escalables, orientado a perfiles técnicos?",
+                options: [
+                    "A) Hosting Compartido",
+                    "B) Servidor VPS",
+                    "C) Servidor Dedicado",
+                    "D) Cloud Hosting"
+                ],
+                correct: 1,
+                exp: "El VPS (Servidor Privado Virtual) funciona como un apartamento propio con recursos escalables, requiriendo conocimientos técnicos intermedios."
+            },
+            {
+                q: "¿Qué opción de hosting ofrece hardware físico exclusivo y máximo rendimiento para grandes tiendas online?",
+                options: [
+                    "A) Hosting Compartido",
+                    "B) Servidor VPS",
+                    "C) Servidor Dedicado",
+                    "D) Google Drive"
+                ],
+                correct: 2,
+                exp: "El servidor dedicado es un ordenador exclusivo de alta potencia (el equivalente a un chalet privado) para proyectos masivos."
+            },
+            {
+                q: "¿Por qué es fundamental el Certificado SSL en un sitio web actual?",
+                options: [
+                    "A) Para aumentar el espacio en disco duro del hosting.",
+                    "B) Para cifrar los datos de los usuarios y cumplir con exigencias de seguridad y SEO (HTTPS).",
+                    "C) Para evitar que caduque el nombre del dominio.",
+                    "D) Para acelerar la subida masiva de archivos vía FTP."
+                ],
+                correct: 1,
+                exp: "El certificado SSL habilita HTTPS, protegiendo la información sensible e indexándose mejor en los buscadores."
+            },
+            {
+                q: "En un despliegue de WordPress, ¿cuáles son los dos grandes pilares que se deben conectar?",
+                options: [
+                    "A) El archivo index.html y la carpeta de imágenes.",
+                    "B) Los archivos web en public_html y la Base de Datos MySQL.",
+                    "C) El cliente FTP y el servidor de correo electrónico.",
+                    "D) El dominio global y la extensión geográfica ccTLD."
+                ],
+                correct: 1,
+                exp: "Un CMS dinámico requiere enlazar la estructura de ficheros de la aplicación con la base de datos a través de un archivo de configuración."
+            },
+            {
+                q: "¿Cómo se vinculan los archivos web de WordPress con su base de datos?",
+                options: [
+                    "A) Modificando el archivo de configuración wp-config.php con las credenciales correctas.",
+                    "B) Renombrando la carpeta public_html a base_datos.",
+                    "C) Subiendo un archivo comprimido .zip mediante doble clic.",
+                    "D) Cambiando el puerto del servidor de 21 a 443."
+                ],
+                correct: 0,
+                exp: "El puente de conexión se realiza editando el fichero wp-config.php para reflejar el host, usuario y contraseña de la base de datos MySQL."
+            },
+            {
+                q: "¿Qué herramienta o sección de cPanel se utiliza habitualmente para importar la estructura de una base de datos (.sql)?",
+                options: [
+                    "A) Administrador de Archivos",
+                    "B) phpMyAdmin",
+                    "C) Cuentas de Correo",
+                    "D) Instalador Softaculous"
+                ],
+                correct: 1,
+                exp: "phpMyAdmin permite acceder a la base de datos creada y utilizar la pestaña 'Importar' para volcar el fichero de respaldo local."
+            },
+            {
+                q: "¿Cuál es el tiempo estimado habitual de propagación global del DNS al cambiar de servidor o hosting?",
+                options: [
+                    "A) De 1 a 2 segundos",
+                    "B) De 2 a 4 horas (máximo 48 horas)",
+                    "C) Exactamente 7 días",
+                    "D) De 30 a 60 días"
+                ],
+                correct: 1,
+                exp: "Tras modificar las DNS, Internet tarda un tiempo en aprender la nueva ruta, estimándose normalmente entre 2 y 4 horas."
+            },
+            {
+                q: "¿Qué se recomienda hacer siempre antes de sobreescribir ficheros críticos en un servidor en producción?",
+                options: [
+                    "A) Borrar el archivo index.html permanentemente.",
+                    "B) Realizar una copia de respaldo (Backup) descargando el contenido previo.",
+                    "C) Cambiar el nombre del dominio principal.",
+                    "D) Desactivar el protocolo HTTP."
+                ],
+                correct: 1,
+                exp: "El manifiesto del despliegue seguro exige realizar siempre respaldos locales de seguridad antes de modificar o reemplazar archivos existentes."
+            },
+            {
+                q: "¿Qué herramienta se menciona en el temario como un autoinstalador de 1 clic para desplegar CMS de forma sencilla?",
+                options: [
+                    "A) FileZilla",
+                    "B) Softaculous",
+                    "C) XAMPP",
+                    "D) phpMyAdmin"
+                ],
+                correct: 1,
+                exp: "Los autoinstaladores como Softaculous permiten desplegar sistemas complejos como WordPress o PrestaShop de manera automatizada."
+            },
+            {
+                q: "¿Cuál es la principal ventaja de utilizar un cliente FTP como FileZilla frente al Administrador de Archivos web?",
+                options: [
+                    "A) Tiene un límite estricto de 256 MB por archivo.",
+                    "B) Permite arrastrar carpetas enteras de gran tamaño sin límite y gestionar proyectos complejos de forma continua.",
+                    "C) No requiere introducir credenciales de servidor.",
+                    "D) Funciona haciendo doble clic sin conexión a Internet."
+                ],
+                correct: 1,
+                exp: "FileZilla no tiene límite de peso estricto y facilita la sincronización masiva de proyectos pesados mediante FTP/SFTP."
+            },
+            {
+                q: "¿Qué mide el indicador de 'Espacio en Disco' en un servidor de hosting?",
+                options: [
+                    "A) La velocidad de procesamiento de consultas complejas.",
+                    "B) Los Gigabytes disponibles para almacenar imágenes, bases de datos, ficheros y correos.",
+                    "C) La cantidad de visitantes simultáneos que soporta la RAM.",
+                    "D) El número de extensiones de dominio permitidas."
+                ],
+                correct: 1,
+                exp: "El espacio en disco representa el volumen físico de almacenamiento en el servidor web para todos los elementos del proyecto."
+            },
+            {
+                q: "¿Qué componentes principales forman parte de un paquete de servidor local tradicional como XAMPP?",
+                options: [
+                    "A) Apache, MySQL y PHP",
+                    "B) HTML, CSS y JavaScript",
+                    "C) FTP, SFTP y DNS",
+                    "D) cPanel, Plesk y phpMyAdmin"
+                ],
+                correct: 0,
+                exp: "XAMPP integra el servidor web Apache, el gestor de bases de datos MySQL y el intérprete PHP para desarrollo local."
+            },
+            {
+                q: "¿Qué causa común provoca un Error 404 de imagen no encontrada tras subir un proyecto a producción?",
+                options: [
+                    "A) Que el archivo index.html está en minúsculas.",
+                    "B) La sensibilidad a mayúsculas y minúsculas en las rutas (ej. llamar Logo.jpg a un archivo guardado como logo.jpg).",
+                    "C) La falta de un certificado SSL activo.",
+                    "D) Usar el puerto 21 en lugar del 22."
+                ],
+                correct: 1,
+                exp: "Los servidores web en la nube distinguen estrictamente mayúsculas de minúsculas, generando fallos si el código no coincide exactamente con el nombre real del archivo."
+            },
+            {
+                q: "¿Qué función cumple la extensión o TLD (Top-Level Domain) dentro de una dirección web?",
+                options: [
+                    "A) Indicar el protocolo de seguridad cifrado.",
+                    "B) Definir la extensión global (.com) o geográfica (.es) del dominio.",
+                    "C) Configurar la dirección IP del servidor local.",
+                    "D) Establecer el límite de RAM del hosting."
+                ],
+                correct: 1,
+                exp: "El TLD sitúa la extensión final de la dirección, permitiendo segmentar alcances internacionales (gTLD) o posicionamientos locales (ccTLD)."
+            },
+            {
+                q: "¿Por qué se desaconseja el uso de espacios en blanco y caracteres especiales al nombrar ficheros web?",
+                options: [
+                    "A) Porque aumentan el consumo de memoria RAM del servidor.",
+                    "B) Porque pueden corromper las rutas URL y generar errores de carga en los enlaces.",
+                    "C) Porque impiden la instalación de certificados SSL.",
+                    "D) Porque bloquean el funcionamiento del protocolo FTP."
+                ],
+                correct: 1,
+                exp: "Una nomenclatura estricta sin espacios ni caracteres especiales previene errores en las rutas de acceso en línea."
+            },
+            {
+                q: "¿Qué ventaja ofrece el flujo de trabajo profesional que combina entorno local y hosting cloud?",
+                options: [
+                    "A) Programar directamente en producción expuestos a fallos públicos.",
+                    "B) Desarrollar y probar de forma gratuita y segura en local antes de migrar el resultado final a la nube para acceso global 24/7.",
+                    "C) Evitar por completo el uso de navegadores web.",
+                    "D) Prescindir de la necesidad de dominios y DNS."
+                ],
+                correct: 1,
+                exp: "El ciclo ideal separa las fases: primero se construye de forma iterativa y segura en local, y luego se despliega al servidor público."
+            },
+            {
+                q: "¿Qué política de seguridad de los navegadores bloquea ciertas peticiones a APIs externas si no se usa un entorno con servidor http://?",
+                options: [
+                    "A) Política CORS (Cross-Origin Resource Sharing)",
+                    "B) Política de compresión GZIP",
+                    "C) Protocolo de transferencia FTP",
+                    "D) Restricción de caché local"
+                ],
+                correct: 0,
+                exp: "Los navegadores aplican restricciones de seguridad estrictas (CORS) cuando se abren ficheros locales puros (file://), requiriendo un entorno de servidor http://."
+            },
+            {
+                q: "¿Qué se evalúa principalmente durante la fase de Quality Assurance (QA) tras realizar un despliegue web?",
+                options: [
+                    "A) Que el peso del archivo ZIP local sea superior a 1 GB.",
+                    "B) Que la página cargue correctamente sin mostrar carpetas y que no existan rutas rotas en recursos gráficos o CSS.",
+                    "C) Que el servidor local XAMPP siga encendido en el ordenador del alumno.",
+                    "D) Que el puerto FTP esté configurado en el valor 80."
+                ],
+                correct: 1,
+                exp: "El control de calidad (QA) comprueba la correcta visualización en la URL de producción y la integridad de enlaces y recursos multimedia."
+            }
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+        let streak = 0;
+        let studentName = "";
+
+        function showScreen(screenId) {
+            document.getElementById('home-screen').classList.add('hidden');
+            document.getElementById('quiz-screen').classList.add('hidden');
+            document.getElementById('results-screen').classList.add('hidden');
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        function startQuiz() {
+            const input = document.getElementById('student-name');
+            studentName = input.value.trim();
+            if(!studentName) {
+                alert("Por favor, introduce tu nombre o alias para comenzar.");
+                return;
+            }
+            currentQuestion = 0;
+            score = 0;
+            streak = 0;
+            showScreen('quiz-screen');
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            const q = questions[currentQuestion];
+            document.getElementById('question-counter').innerText = `Pregunta ${currentQuestion + 1} de ${questions.length}`;
+            document.getElementById('current-score').innerText = score;
+            document.getElementById('question-text').innerText = q.q;
+            document.getElementById('explanation-box').classList.add('hidden');
+
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+
+            q.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left bg-darkBg border border-slate-700 hover:border-orangeNeon p-4 rounded-xl text-slate-200 font-medium transition text-sm md:text-base flex items-center justify-between group";
+                btn.innerHTML = `<span>${opt}</span> <span class="opacity-0 group-hover:opacity-100 text-orangeNeon font-bold">👉</span>`;
+                btn.onclick = () => selectOption(index, btn);
+                container.appendChild(btn);
+            });
+        }
+
+        function selectOption(selectedIndex, btnElement) {
+            const q = questions[currentQuestion];
+            const buttons = document.getElementById('options-container').getElementsByTagName('button');
+            
+            // Desactivar botones para evitar doble clic
+            for(let b of buttons) { b.disabled = true; }
+
+            const explanationBox = document.getElementById('explanation-box');
+            const explanationText = document.getElementById('explanation-text');
+            const explanationTitle = document.getElementById('explanation-title');
+
+            if(selectedIndex === q.correct) {
+                btnElement.classList.remove('bg-darkBg', 'border-slate-700');
+                btnElement.classList.add('bg-emerald-950/80', 'border-emerald-500', 'text-emerald-200');
+                score += 10;
+                streak++;
+                document.getElementById('current-score').innerText = score;
+                
+                if(streak >= 3) {
+                    const streakBadge = document.getElementById('streak-badge');
+                    streakBadge.classList.remove('hidden');
+                    document.getElementById('streak-count').innerText = streak;
+                }
+
+                explanationTitle.innerText = "¡Respuesta Correcta! 🎉";
+                explanationTitle.className = "font-bold text-sm text-emerald-400";
+                
+                // Lanzar confeti alegre
+                confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 } });
+            } else {
+                btnElement.classList.remove('bg-darkBg', 'border-slate-700');
+                btnElement.classList.add('bg-rose-950/80', 'border-rose-500', 'text-rose-200');
+                buttons[q.correct].classList.remove('bg-darkBg', 'border-slate-700');
+                buttons[q.correct].classList.add('bg-emerald-950/80', 'border-emerald-500', 'text-emerald-200');
+                streak = 0;
+                document.getElementById('streak-badge').classList.add('hidden');
+
+                explanationTitle.innerText = "¡Ups, casi! 💡";
+                explanationTitle.className = "font-bold text-sm text-amber-400";
+            }
+
+            explanationText.innerText = q.exp;
+            explanationBox.classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            if(currentQuestion < questions.length) {
+                loadQuestion();
+            } else {
+                finishQuiz();
+            }
+        }
+
+        function finishQuiz() {
+            showScreen('results-screen');
+            document.getElementById('final-score-text').innerText = `¡Excelente trabajo, ${studentName}! Has completado el test de arquitectura web.`;
+            document.getElementById('final-score-number').innerText = `${score} / ${questions.length * 10}`;
+
+            // Generar Insignias
+            const badgesContainer = document.getElementById('badges-container');
+            badgesContainer.innerHTML = '';
+
+            let badges = [];
+            if(score >= 200) badges.push("👑 Arquitecto Web Master");
+            if(streak >= 3) badges.push("🔥 Racha de Fuego");
+            if(score > 0) badges.push("🌟 Pionero Cloud");
+
+            if(badges.length === 0) badges.push("🌱 Aprendiz Constante");
+
+            badges.forEach(badge => {
+                const span = document.createElement('span');
+                span.className = "bg-orangeNeon/10 border border-orangeNeon/30 text-orangeNeon text-xs font-bold px-3 py-1.5 rounded-xl";
+                span.innerText = badge;
+                badgesContainer.appendChild(span);
+            });
+
+            // Guardar en Base de Datos Local / Registros
+            saveToDatabase({
+                name: studentName,
+                score: score,
+                max: questions.length * 10,
+                date: new Date().toLocaleDateString()
+            });
+
+            confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 } });
+        }
+
+        function restartQuiz() {
+            showScreen('home-screen');
+            document.getElementById('student-name').value = '';
+        }
+
+        // --- SISTEMA DE BASE DE DATOS LOCAL Y PANEL DOCENTE ---
+        function saveToDatabase(result) {
+            let db = JSON.parse(localStorage.getItem('ciberquiz_results') || '[]');
+            db.push(result);
+            localStorage.setItem('ciberquiz_results', JSON.stringify(db));
+        }
+
+        function openTeacherModal() {
+            document.getElementById('teacher-modal').classList.remove('hidden');
+            document.getElementById('teacher-auth').classList.remove('hidden');
+            document.getElementById('teacher-stats').classList.add('hidden');
+            document.getElementById('teacher-pass').value = '';
+        }
+
+        function closeTeacherModal() {
+            document.getElementById('teacher-modal').classList.add('hidden');
+        }
+
+        function verifyTeacher() {
+            const pass = document.getElementById('teacher-pass').value;
+            if(pass === 'profe2026') {
+                document.getElementById('teacher-auth').classList.add('hidden');
+                document.getElementById('teacher-stats').classList.remove('hidden');
+                loadTeacherStats();
+            } else {
+                alert("Contraseña incorrecta. Clave por defecto: profe2026");
+            }
+        }
+
+        function loadTeacherStats() {
+            let db = JSON.parse(localStorage.getItem('ciberquiz_results') || '[]');
+            document.getElementById('stat-total-students').innerText = db.length;
+            
+            const list = document.getElementById('students-list');
+            list.innerHTML = '';
+
+            if(db.length === 0) {
+                list.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">Aún no hay registros de alumnos guardados.</p>`;
+                return;
+            }
+
+            db.reverse().forEach(item => {
+                const div = document.createElement('div');
+                div.className = "bg-darkBg border border-slate-800 p-3 rounded-xl flex justify-between items-center text-xs";
+                div.innerHTML = `
+                    <div>
+                        <span class="font-bold text-white">${item.name}</span>
+                        <span class="text-slate-500 block">${item.date}</span>
+                    </div>
+                    <span class="bg-orangeNeon/20 text-orangeNeon font-extrabold px-2.5 py-1 rounded-lg border border-orangeNeon/30">${item.score} pts</span>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function clearDatabase() {
+            if(confirm("¿Estás segura de que quieres borrar todos los registros de alumnos guardados?")) {
+                localStorage.removeItem('ciberquiz_results');
+                loadTeacherStats();
+            }
+        }
+    </script>
+</body>
+</html>
